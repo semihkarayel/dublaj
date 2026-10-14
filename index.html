@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dubbing Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#fafaf9;--fg:#18181b;--muted:#71717a;--line:#e7e5e4;--card:#fff;--soft:#f4f4f5;--btn:#18181b;--btn-t:#fff;--rec:#ef4444;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0d;--fg:#fafafa;--muted:#a1a1aa;--line:#27272a;--card:#151517;--soft:#1c1c1f;--btn:#fafafa;--btn-t:#18181b}}
+:root[data-theme="dark"]{--bg:#0c0c0d;--fg:#fafafa;--muted:#a1a1aa;--line:#27272a;--card:#151517;--soft:#1c1c1f;--btn:#fafafa;--btn-t:#18181b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:20px 0}
+.brand{font-weight:700;letter-spacing:-.02em;font-size:1.05rem}
+.top-r{display:flex;align-items:center;gap:6px}
+.saved{font-size:.75rem;color:var(--muted)}
+.banner{display:none;margin:0 0 16px;padding:10px 14px;border-radius:10px;background:#fef3c7;color:#78350f;font-size:.85rem}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:40px;padding-bottom:60px;align-items:start}
+.side{display:flex;flex-direction:column;gap:32px}
+.main{display:flex;flex-direction:column;gap:20px;min-width:0}
+@media (max-width:820px){
+  .layout{display:flex;flex-direction:column;gap:24px}
+  .side,.main{display:contents}
+  .c-mem{order:1}.c-scn{order:2}.c-stage{order:3}.c-dubs{order:4}
+}
+h2{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin:0 0 10px}
+.stage{position:relative;background:#000;border-radius:16px;overflow:hidden}
+video{display:block;width:100%;max-height:60vh;background:#000}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:240px;color:#a1a1aa;text-align:center;padding:20px;cursor:pointer;border-radius:16px}
+.empty b{font-size:2rem;font-weight:400}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:7rem;font-weight:800;color:#fff;background:rgba(0,0,0,.55)}
+.badge{position:absolute;top:12px;left:12px;background:var(--rec);color:#fff;font-size:.8rem;font-weight:700;padding:3px 12px;border-radius:99px;display:none}
+#status{font-size:.9rem;color:var(--muted);min-height:1.4em}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn,button{font:inherit;font-weight:600;font-size:.92rem;border:1px solid var(--line);background:transparent;color:var(--fg);padding:10px 16px;min-height:44px;border-radius:10px;cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+button:hover:not(:disabled),.btn:hover{background:var(--soft)}
+button:disabled{opacity:.35;cursor:not-allowed}
+.primary{background:var(--btn);color:var(--btn-t);border-color:var(--btn)}
+button.primary:hover:not(:disabled){background:var(--btn);opacity:.88}
+.rec i{width:12px;height:12px;border-radius:50%;background:var(--rec);display:inline-block}
+.ic{border:0;padding:6px 10px;min-height:36px;color:var(--muted);font-weight:500}
+.danger{background:var(--rec)!important;color:#fff!important;border-color:var(--rec)!important}
+#live{display:none;flex-wrap:wrap;gap:10px;align-items:center}
+.time{font-variant-numeric:tabular-nums;font-weight:700;min-width:50px}
+.meter{flex:1;min-width:100px;height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.meter div{height:100%;width:0;background:var(--fg);opacity:.75;transition:width .06s}
+.res{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px;display:none}
+.res-t{margin-bottom:10px;font-size:.9rem}
+.note{font-size:.85rem;color:var(--muted)}
+details.opts{border-top:1px solid var(--line);padding-top:12px}
+details.opts summary{cursor:pointer;color:var(--muted);font-size:.9rem;font-weight:600;list-style:none}
+details.opts summary::before{content:"＋ "}
+details.opts[open] summary::before{content:"－ "}
+.opt{margin-top:14px}
+.opt label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:4px}
+input[type=text],textarea{font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);min-width:0;width:100%}
+textarea{resize:vertical}
+input[type=range]{accent-color:var(--fg);width:100%;max-width:300px}
+.slide{display:flex;align-items:center;gap:10px}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0);pointer-events:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:99px;padding:2px 4px 2px 12px;min-height:38px;cursor:pointer;max-width:100%;font-size:.88rem;font-weight:600}
+.chip.active{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.chip .cnt{font-size:.72rem;opacity:.65;font-weight:500}
+.chip button{border:0;background:transparent;color:inherit;opacity:.6;padding:0 10px;min-height:32px;border-radius:99px}
+.chip.mem{padding-left:4px}
+.av{width:28px;height:28px;border-radius:50%;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex:none}
+.dubs{display:flex;flex-direction:column}
+.dub{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px}
+.dub:hover{background:var(--soft)}
+.dub.active{background:var(--soft)}
+.dub .nm{flex:1;min-width:0}
+.dub .who{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dub .what{font-size:.78rem;color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dub .du{font-size:.75rem;color:var(--muted)}
+.dub button{padding:0 8px;min-height:32px;border:0;font-size:.8rem}
+.drag{outline:2px dashed var(--muted);outline-offset:6px;border-radius:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">🎬 Dubbing Studio</div>
+    <div class="top-r"><span class="saved" id="saved"></span><button class="ic" id="btnTheme" title="Light / dark">◐</button><button class="ic" id="btnReset" title="Delete everything">Reset</button></div>
+  </div>
+  <div class="banner" id="embedBanner">This page seems to be opened inside another app. Microphone access and video upload can be blocked there. On phones, open the standalone link directly in Safari or Chrome.</div>
+
+  <div class="layout">
+    <aside class="side">
+      <div class="c-mem">
+        <h2>Who is dubbing</h2>
+        <div class="chips" id="memberList"></div>
+        <div class="row" style="margin-top:10px;flex-wrap:nowrap"><input type="text" id="memberIn" placeholder="Add a name…" autocomplete="off"><button class="btn" id="btnAddMember">Add</button></div>
+      </div>
+      <div class="c-dubs">
+        <h2>All dubs</h2>
+        <div class="dubs" id="dubList"></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="btnZip">⬇ Save all</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="c-scn" id="scenesCard">
+        <h2>Scenes</h2>
+        <div class="chips" id="sceneList"></div>
+        <div class="row" style="margin-top:10px"><label class="btn" for="file">＋ Add scene</label><span class="note">or drop video files here</span></div>
+        <input class="vh" type="file" id="file" accept="video/*" multiple>
+      </div>
+
+      <div class="c-stage" style="display:flex;flex-direction:column;gap:14px">
+        <div class="stage">
+          <label class="empty" id="empty" for="file"><b>＋</b>Add a movie scene to start<span class="note">Tap here and choose a video</span></label>
+          <video id="vid" playsinline webkit-playsinline muted style="display:none"></video>
+          <div class="overlay" id="count"></div>
+          <div class="badge" id="rec">● REC</div>
+        </div>
+
+        <div class="row">
+          <button class="btn primary rec" id="btnRec" disabled><i></i><span id="recLabel">Record</span></button>
+          <div id="live">
+            <button class="btn primary" id="btnPause">Pause</button>
+            <button class="btn" id="btnStop">Stop &amp; save</button>
+            <span class="time" id="time">00:00</span>
+            <div class="meter" title="Microphone level"><div id="meterBar"></div></div>
+          </div>
+        </div>
+        <div id="status"></div>
+
+        <div class="res" id="res">
+          <div class="res-t"><span class="note">Selected dub:</span> <b id="resTitle"></b></div>
+          <div class="row">
+            <button class="btn primary" id="btnPlay">▶ Watch dub</button>
+            <button class="btn" id="btnShare">Share</button>
+            <button class="btn" id="btnDl">Save audio</button>
+            <button class="btn" id="btnMerge" title="Computer browsers only. Takes as long as the scene.">Save video</button>
+          </div>
+        </div>
+
+        <details class="opts">
+          <summary>Options</summary>
+          <div class="opt"><label>Original sound while watching <span id="volNote"></span></label><input type="range" id="origVol" min="0" max="100" value="0"></div>
+          <div class="opt"><label>Voice sync: slide right to delay the voice, left to bring it earlier</label>
+            <div class="slide"><input type="range" id="sync" min="-100" max="100" step="5" value="0" disabled><span class="note" id="syncVal">0.00s</span><button class="btn" id="syncReset" style="min-height:36px;padding:4px 12px">Reset</button></div></div>
+          <p class="note">"Save video" combines the scene and the voice in real time, so it takes as long as the scene. Keep the tab open. It works in Chrome, Edge and Firefox on a computer. Shortcuts on a computer: Space = record / pause / resume, S = stop.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</div>
+<audio id="aud" playsinline hidden></audio>
+
+<script>
+const $ = id => document.getElementById(id);
+const vid = $('vid'), aud = $('aud');
+let scenes = [], dubs = [], members = [], curMember = '', cur = null, selId = null, nextId = 1, nextDub = 1;
+let stream, recorder, chunks = [], recording = false, paused = false, busy = false, dubMode = false;
+let elapsed = 0, lastT = 0, timer = null, actx = null, raf = 0, audT = 0, playD = null;
+const EMBED = (() => { try{ return window.self !== window.top; }catch(e){ return true; } })();
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if(EMBED) $('embedBanner').style.display = 'block';
+if(IOS) $('volNote').textContent = '(on / off only on iPhone)';
+if(!navigator.share) $('btnShare').style.display = 'none';
+
+/* ---------- storage (IndexedDB, optional) ---------- */
+const DB = {
+  db: null,
+  open(){ return new Promise(res => {
+    const t = setTimeout(() => res(false), 1500);
+    try{
+      const r = indexedDB.open('dubbing-studio', 1);
+      r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('scenes',{keyPath:'id'}); d.createObjectStore('dubs',{keyPath:'id'}); d.createObjectStore('meta',{keyPath:'k'}); };
+      r.onsuccess = () => { clearTimeout(t); DB.db = r.result; res(true); };
+      r.onerror = () => { clearTimeout(t); res(false); };
+    }catch(e){ clearTimeout(t); res(false); } }); },
+  put(st, v){ try{ if(DB.db) DB.db.transaction(st,'readwrite').objectStore(st).put(v); }catch(e){} },
+  del(st, k){ try{ if(DB.db) DB.db.transaction(st,'readwrite').objectStore(st).delete(k); }catch(e){} },
+  clear(st){ try{ if(DB.db) DB.db.transaction(st,'readwrite').objectStore(st).clear(); }catch(e){} },
+  all(st){ return new Promise(res => { try{ if(!DB.db) return res([]); const q = DB.db.transaction(st).objectStore(st).getAll(); q.onsuccess = () => res(q.result); q.onerror = () => res([]); }catch(e){ res([]); } }); }
+};
+const saveMeta = () => DB.put('meta', {k:'state', members, curMember});
+const saveDub = d => DB.put('dubs', {id:d.id, member:d.member, sceneId:d.sceneId, blob:d.blob, mime:d.mime, dur:d.dur, take:d.take || 1, offset:d.offset || 0});
+
+/* ---------- helpers ---------- */
+const setStatus = t => $('status').textContent = t;
+const current = () => scenes.find(s => s.id === cur);
+const selDub = () => dubs.find(d => d.id === selId);
+const takes = (sid, m) => dubs.filter(d => d.sceneId === sid && d.member === m);
+const getDub = (sid, m) => { const l = takes(sid, m); return l[l.length - 1]; };
+const clean = t => (t || '').trim().replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '');
+const baseName = d => clean(d.member) + '_' + clean(scenes.find(x => x.id === d.sceneId).name.replace(/\.[^.]+$/, '')) + '_take' + (d.take || 1);
+const extOf = m => (m || '').includes('mp4') ? 'm4a' : (m || '').includes('ogg') ? 'ogg' : 'webm';
+const fmt = s => { s = Math.round(s || 0); return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); };
+const pickMime = list => list.find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+function download(url, name){ const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+function avatar(name){ const a = document.createElement('span'); a.className = 'av'; a.textContent = (name[0] || '?').toUpperCase(); let h = 0; for(const c of name) h = (h * 31 + c.charCodeAt(0)) % 360; a.style.background = 'hsl(' + h + ',45%,45%)'; return a; }
+function armDelete(btn, fn){
+  if(btn.dataset.armed){ fn(); return; }
+  btn.dataset.armed = '1'; const old = btn.textContent; btn.textContent = 'Sure?'; btn.classList.add('danger');
+  setTimeout(() => { if(btn.isConnected){ delete btn.dataset.armed; btn.textContent = old; btn.classList.remove('danger'); } }, 2500);
+}
+function el(tag, cls, parent){ const e = document.createElement(tag); if(cls) e.className = cls; if(parent) parent.appendChild(e); return e; }
+function setOrigVol(){ const v = $('origVol').value / 100; vid.muted = v === 0; try{ vid.volume = v; }catch(e){} }
+function setSyncUI(d){ const o = (d && d.offset) || 0; $('sync').value = Math.round(o * 100); $('syncVal').textContent = o.toFixed(2) + 's'; }
+
+/* ---------- rendering ---------- */
+function updateButtons(){
+  const s = current(), d = selDub();
+  $('btnRec').style.display = recording ? 'none' : 'inline-flex';
+  $('btnRec').disabled = !s || !curMember || busy;
+  $('recLabel').textContent = !curMember && s ? 'Add a name first' : s && getDub(s.id, curMember) ? 'Record new take' : 'Record';
+  $('live').style.display = recording ? 'flex' : 'none';
+  $('btnPause').textContent = paused ? 'Resume' : 'Pause';
+  $('res').style.display = d ? 'block' : 'none';
+  $('resTitle').textContent = d ? d.member + (takes(d.sceneId, d.member).length > 1 ? ' · take ' + (d.take || 1) : '') : '';
+  ['btnPlay','btnShare','btnDl','btnMerge'].forEach(id => $(id).disabled = busy);
+  $('btnAddMember').disabled = busy || recording;
+  $('btnZip').disabled = !dubs.length || busy;
+  $('sync').disabled = !d;
+}
+function renderMembers(){
+  const box = $('memberList'); box.innerHTML = '';
+  if(!members.length){ el('span','note',box).textContent = 'Add your name to start recording.'; return; }
+  members.forEach(m => {
+    const c = el('div', 'chip mem' + (m === curMember ? ' active' : ''), box);
+    c.appendChild(avatar(m));
+    el('span','nm',c).textContent = m;
+    const x = el('button','',c); x.textContent = '×'; x.title = 'Remove member and their dubs';
+    c.onclick = () => { if(!busy && !recording){ curMember = m; saveMeta(); memberChanged(); } };
+    x.onclick = e => { e.stopPropagation(); if(!busy && !recording) armDelete(x, () => removeMember(m)); };
+  });
+}
+function renderScenes(){
+  const box = $('sceneList'); box.innerHTML = '';
+  if(!scenes.length){ el('span','note',box).textContent = 'No scenes yet.'; return; }
+  scenes.forEach(s => {
+    const n = dubs.filter(d => d.sceneId === s.id).length;
+    const c = el('div', 'chip' + (s.id === cur ? ' active' : ''), box);
+    el('span','nm',c).textContent = s.name;
+    el('span','cnt',c).textContent = n ? n + (n > 1 ? ' dubs' : ' dub') : '';
+    const x = el('button','',c); x.textContent = '×'; x.title = 'Remove scene and its dubs';
+    c.onclick = () => { if(!busy && !recording) loadScene(s.id); };
+    x.onclick = e => { e.stopPropagation(); if(!busy && !recording) armDelete(x, () => removeScene(s.id)); };
+  });
+}
+function renderDubs(){
+  const box = $('dubList'); box.innerHTML = '';
+  if(!dubs.length){ el('span','note',box).textContent = 'Finished dubs will appear here. Tap one to watch it.'; return; }
+  dubs.forEach(d => {
+    const s = scenes.find(x => x.id === d.sceneId), multi = takes(d.sceneId, d.member).length > 1;
+    const c = el('div', 'dub' + (d.id === selId ? ' active' : ''), box);
+    c.appendChild(avatar(d.member));
+    const nm = el('span','nm',c);
+    el('span','who',nm).textContent = d.member;
+    el('span','what',nm).textContent = (s ? s.name : '') + (multi ? ' · take ' + (d.take || 1) : '');
+    el('span','du',c).textContent = fmt(d.dur);
+    const x = el('button','',c); x.textContent = '×'; x.title = 'Delete dub';
+    c.onclick = () => { if(!busy && !recording){ selectDub(d.id); watchDub(); } };
+    x.onclick = e => { e.stopPropagation(); if(!busy && !recording) armDelete(x, () => removeDub(d.id)); };
+  });
+}
+const renderAll = () => { renderMembers(); renderScenes(); renderDubs(); updateButtons(); };
+
+function applyAudio(){
+  const d = selDub(); aud.pause(); clearTimeout(audT);
+  if(d){ aud.src = d.audio; aud.dataset.u = d.audio; } else { aud.removeAttribute('src'); delete aud.dataset.u; }
+  setSyncUI(d);
+}
+function loadScene(id){
+  cur = id; dubMode = false;
+  const s = current(), d = getDub(id, curMember);
+  selId = d ? d.id : null;
+  vid.src = s.video; vid.muted = true; vid.controls = true; vid.style.display = 'block';
+  $('empty').style.display = 'none';
+  applyAudio();
+  setStatus(!curMember ? 'Add a name on the left, then press Record.' : d ? curMember + ' already dubbed this scene. Watch it or record a new take.' : 'Ready. Press Record when you are.');
+  renderAll();
+}
+function selectDub(id){
+  const d = dubs.find(x => x.id === id);
+  if(d.sceneId !== cur) loadScene(d.sceneId);
+  selId = id; dubMode = false; applyAudio(); renderAll();
+}
+function removeDub(id){
+  const d = dubs.find(x => x.id === id); URL.revokeObjectURL(d.audio); DB.del('dubs', id);
+  dubs = dubs.filter(x => x.id !== id);
+  if(selId === id){ selId = null; applyAudio(); }
+  renderAll();
+}
+function removeScene(id){
+  dubs.filter(d => d.sceneId === id).forEach(d => { URL.revokeObjectURL(d.audio); DB.del('dubs', d.id); });
+  dubs = dubs.filter(d => d.sceneId !== id);
+  URL.revokeObjectURL(scenes.find(x => x.id === id).video); DB.del('scenes', id);
+  scenes = scenes.filter(x => x.id !== id);
+  if(cur === id){
+    cur = null; selId = null; vid.pause(); vid.removeAttribute('src'); vid.load(); vid.style.display = 'none'; $('empty').style.display = 'flex';
+    applyAudio(); setStatus('');
+    if(scenes.length) return loadScene(scenes[0].id);
+  }
+  renderAll();
+}
+function removeMember(m){
+  dubs.filter(d => d.member === m).forEach(d => { URL.revokeObjectURL(d.audio); DB.del('dubs', d.id); });
+  dubs = dubs.filter(d => d.member !== m);
+  members = members.filter(x => x !== m);
+  if(curMember === m) curMember = members[0] || '';
+  saveMeta(); selId = null; memberChanged();
+}
+function memberChanged(){
+  if(cur !== null){ const d = getDub(cur, curMember); selId = d ? d.id : null; applyAudio(); }
+  renderAll();
+}
+
+/* ---------- members & scenes ---------- */
+function addMember(){
+  const name = $('memberIn').value.trim(); if(!name) return;
+  const ex = members.find(x => x.toLowerCase() === name.toLowerCase());
+  curMember = ex || name; if(!ex) members.push(name);
+  $('memberIn').value = ''; saveMeta(); memberChanged();
+  if(cur !== null) setStatus('Hi ' + curMember + '! Press Record when you are ready.');
+}
+$('btnAddMember').onclick = addMember;
+$('memberIn').addEventListener('keydown', e => { if(e.key === 'Enter') addMember(); });
+
+const isVideo = f => (f.type && f.type.startsWith('video/')) || /\.(mp4|mov|m4v|webm|mkv|avi|3gp|ogv)$/i.test(f.name || '');
+function addFiles(list){
+  const files = [...list].filter(isVideo); if(!files.length) return;
+  const first = nextId;
+  files.forEach(f => { const s = {id: nextId++, name: f.name || ('scene-' + nextId), blob: f, video: URL.createObjectURL(f)}; scenes.push(s); DB.put('scenes', {id:s.id, name:s.name, blob:f}); });
+  if(cur === null && !busy && !recording) loadScene(first); else renderAll();
+}
+$('file').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+['dragover','dragenter'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('scenesCard').classList.add('drag'); }));
+['dragleave','drop'].forEach(t => document.addEventListener(t, e => { e.preventDefault(); $('scenesCard').classList.remove('drag'); }));
+document.addEventListener('drop', e => { if(e.dataTransfer) addFiles(e.dataTransfer.files); });
+
+/* ---------- recording ---------- */
+async function countdown(){
+  const o = $('count'); o.style.display = 'flex';
+  for(const n of [3,2,1]){ o.textContent = n; await new Promise(r => setTimeout(r, 800)); }
+  o.style.display = 'none';
+}
+function startMeter(){
+  try{
+    actx = new (window.AudioContext || window.webkitAudioContext)(); if(actx.resume) actx.resume();
+    const src = actx.createMediaStreamSource(stream), an = actx.createAnalyser(); an.fftSize = 512; src.connect(an);
+    const buf = new Uint8Array(an.fftSize);
+    const loop = () => { an.getByteTimeDomainData(buf); let s = 0; for(const v of buf){ const x = (v - 128) / 128; s += x * x; }
+      $('meterBar').style.width = (paused ? 0 : Math.min(1, Math.sqrt(s / buf.length) * 4) * 100) + '%'; raf = requestAnimationFrame(loop); };
+    loop();
+  }catch(e){}
+}
+function stopMeter(){ cancelAnimationFrame(raf); try{ if(actx) actx.close(); }catch(e){} actx = null; $('meterBar').style.width = '0%'; }
+function startTimer(){
+  elapsed = 0; lastT = performance.now();
+  timer = setInterval(() => { const n = performance.now(); if(!paused) elapsed += n - lastT; lastT = n;
+    $('time').textContent = fmt(elapsed / 1000); $('rec').textContent = (paused ? '⏸ PAUSED ' : '● REC ') + fmt(elapsed / 1000); }, 200);
+}
+function micError(err){
+  $('embedBanner').style.display = EMBED ? 'block' : 'none';
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return 'The microphone is not available here. It needs a secure (https) page opened directly in Safari or Chrome.';
+  if(err && err.name === 'NotAllowedError') return EMBED ? 'The microphone is blocked because this page is inside another app. Open the standalone link directly in Safari or Chrome.' : 'Microphone permission was denied. Allow it in your browser settings (iPhone: aA menu → Website Settings → Microphone), then try again.';
+  if(err && err.name === 'NotFoundError') return 'No microphone was found on this device.';
+  return 'Could not start the microphone' + (err && err.name ? ' (' + err.name + ')' : '') + '.';
+}
+async function startRecording(){
+  const s = current(), member = curMember;
+  if(!s || !member || busy) return;
+  busy = true; updateButtons();
+  try{
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nomic');
+    stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+  }catch(err){ busy = false; updateButtons(); setStatus(micError(err)); return; }
+  if(!window.MediaRecorder){ stream.getTracks().forEach(t => t.stop()); busy = false; updateButtons(); setStatus('This browser cannot record audio. Please update it or try Chrome / Safari 14.3+.'); return; }
+  const mime = pickMime(['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg']);
+  recorder = mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
+  chunks = [];
+  recorder.ondataavailable = ev => { if(ev.data.size) chunks.push(ev.data); };
+  recorder.onstop = () => {
+    const type = recorder.mimeType || mime || 'audio/mp4';
+    const blob = new Blob(chunks,{type}), url = URL.createObjectURL(blob), dur = elapsed / 1000;
+    const d = {id: nextDub++, member, sceneId: s.id, audio: url, blob, mime: type, dur, take: takes(s.id, member).length + 1, offset: 0};
+    dubs.push(d); saveDub(d); selId = d.id; applyAudio();
+    vid.controls = true; busy = false;
+    setStatus('Saved! Press "Watch dub" to see the result.');
+    renderAll();
+  };
+  dubMode = false;
+  aud.pause(); vid.pause(); vid.currentTime = 0; vid.muted = true; vid.controls = false;
+  setStatus('Get ready, ' + member + '…');
+  await countdown();
+  recorder.start(); recording = true; paused = false;
+  $('rec').style.display = 'block'; startTimer(); startMeter(); updateButtons();
+  setStatus('Recording… speak along with the scene. You can pause any time.');
+  vid.play();
+}
+function togglePause(){
+  if(!recording) return;
+  if(!paused){ recorder.pause(); vid.pause(); paused = true; setStatus('Paused. Resume to continue from this exact point.'); }
+  else { recorder.resume(); vid.play(); paused = false; setStatus('Recording… speak along with the scene.'); }
+  updateButtons();
+}
+function stopRecording(){
+  if(!recording) return;
+  recording = false; paused = false; clearInterval(timer); vid.pause(); recorder.stop();
+  stream.getTracks().forEach(t => t.stop()); stopMeter();
+  $('rec').style.display = 'none'; updateButtons();
+}
+$('btnRec').onclick = startRecording;
+$('btnPause').onclick = togglePause;
+$('btnStop').onclick = stopRecording;
+
+document.addEventListener('keydown', e => {
+  const t = e.target.tagName; if(t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+  if(e.code === 'Space'){ e.preventDefault(); if(document.activeElement) document.activeElement.blur(); if(recording) togglePause(); else if(!$('btnRec').disabled) startRecording(); }
+  else if(e.code === 'KeyS' && recording){ e.preventDefault(); stopRecording(); }
+});
+document.addEventListener('keyup', e => { const t = e.target.tagName; if(e.code === 'Space' && t !== 'INPUT' && t !== 'TEXTAREA') e.preventDefault(); });
+
+/* ---------- playback & play all ---------- */
+const ready = m => m.readyState >= 2 ? null : new Promise(r => m.addEventListener('loadeddata', r, {once:true}));
+function audGo(){
+  clearTimeout(audT);
+  const o = (playD && playD.offset) || 0, t = vid.currentTime - o;
+  if(t < 0){ aud.pause(); aud.currentTime = 0; audT = setTimeout(() => { if(dubMode && !vid.paused) aud.play(); }, -t * 1000); }
+  else { aud.currentTime = t; aud.play(); }
+}
+function watchDub(d){
+  d = d || selDub(); if(!d) return;
+  vid.pause(); aud.pause(); clearTimeout(audT);
+  playD = d; dubMode = true; setOrigVol();
+  if(aud.dataset.u !== d.audio){ aud.src = d.audio; aud.dataset.u = d.audio; }
+  setStatus('Playing ' + d.member + '\'s dub…');
+  const go = () => { vid.currentTime = 0; vid.play(); audGo(); };
+  const a = ready(vid), b = ready(aud);
+  if(!a && !b) go(); else Promise.all([a, b]).then(go);
+}
+vid.addEventListener('ended', () => {
+  if(recording){ stopRecording(); return; }
+  aud.pause();
+});
+$('btnPlay').onclick = () => watchDub();
+$('origVol').addEventListener('input', () => { if(dubMode) setOrigVol(); });
+vid.addEventListener('pause', () => { if(dubMode && !recording){ clearTimeout(audT); aud.pause(); } });
+vid.addEventListener('play', () => { if(dubMode && !recording && aud.paused) audGo(); });
+vid.addEventListener('seeked', () => { if(dubMode && !recording){ if(vid.paused) aud.currentTime = Math.max(0, vid.currentTime - ((playD && playD.offset) || 0)); else audGo(); } });
+
+$('sync').addEventListener('input', () => {
+  const d = selDub(); if(!d) return;
+  d.offset = Number($('sync').value) / 100; $('syncVal').textContent = d.offset.toFixed(2) + 's';
+  if(dubMode && playD === d && !vid.paused) audGo();
+});
+$('sync').addEventListener('change', () => { const d = selDub(); if(d) saveDub(d); });
+$('syncReset').onclick = () => { const d = selDub(); if(!d) return; d.offset = 0; setSyncUI(d); saveDub(d); if(dubMode && playD === d && !vid.paused) audGo(); };
+
+/* ---------- saving & sharing ---------- */
+$('btnDl').onclick = () => { const d = selDub(); if(d) download(d.audio, baseName(d) + '.' + extOf(d.mime)); };
+$('btnShare').onclick = async () => {
+  const d = selDub(); if(!d) return;
+  const name = baseName(d) + '.' + extOf(d.mime);
+  try{
+    const f = new File([d.blob], name, {type: d.mime});
+    if(navigator.canShare && navigator.canShare({files:[f]})) await navigator.share({files:[f], title: baseName(d)});
+    else throw new Error('noshare');
+  }catch(e){ if(e && e.name === 'AbortError') return; download(d.audio, name); setStatus('Sharing is not available here, so the file was downloaded instead.'); }
+};
+$('btnZip').onclick = async () => {
+  if(!dubs.length) return;
+  if(!window.JSZip){ dubs.forEach((d, i) => setTimeout(() => download(d.audio, baseName(d) + '.' + extOf(d.mime)), i * 600)); return; }
+  setStatus('Packing all dubs…');
+  const z = new JSZip(); dubs.forEach(d => z.file(baseName(d) + '.' + extOf(d.mime), d.blob));
+  const url = URL.createObjectURL(await z.generateAsync({type:'blob'}));
+  download(url, 'all-dubs.zip'); setTimeout(() => URL.revokeObjectURL(url), 60000);
+  setStatus('All dubs were saved as a zip file.');
+};
+
+async function mergeVideo(d){
+  if(!d) return;
+  const s = scenes.find(x => x.id === d.sceneId), probe = document.createElement('video');
+  if(!(probe.captureStream || probe.mozCaptureStream)){ setStatus('Your browser cannot create the combined video (iPhone cannot). Use Chrome, Edge or Firefox on a computer, or save / share the audio only.'); return; }
+  busy = true; dubMode = false; updateButtons(); vid.pause(); aud.pause();
+  setStatus('Preparing video…');
+  const ev = document.createElement('video');
+  ev.src = s.video; ev.playsInline = true; ev.preload = 'auto';
+  ev.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0';
+  document.body.appendChild(ev);
+  const ea = new Audio(d.audio), ctx = new (window.AudioContext || window.webkitAudioContext)();
+  try{
+    await new Promise((res, rej) => { ev.onloadeddata = res; ev.onerror = rej; });
+    const dest = ctx.createMediaStreamDestination(), g = ctx.createGain(); g.gain.value = $('origVol').value / 100;
+    ctx.createMediaElementSource(ev).connect(g); g.connect(dest);
+    ctx.createMediaElementSource(ea).connect(dest);
+    const vt = (ev.captureStream || ev.mozCaptureStream).call(ev).getVideoTracks()[0];
+    if(!vt) throw new Error('no video track');
+    const out = new MediaStream([vt, ...dest.stream.getAudioTracks()]);
+    const mime = pickMime(['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4']);
+    const rec = mime ? new MediaRecorder(out,{mimeType:mime}) : new MediaRecorder(out), parts = [];
+    rec.ondataavailable = e => { if(e.data.size) parts.push(e.data); };
+    const tm = setInterval(() => { if(ev.duration) setStatus('Creating video… ' + Math.round(ev.currentTime / ev.duration * 100) + '%'); }, 500);
+    rec.onstop = () => {
+      clearInterval(tm);
+      const type = rec.mimeType || mime || 'video/webm', url = URL.createObjectURL(new Blob(parts,{type}));
+      download(url, baseName(d) + '_dubbed.' + (type.includes('mp4') ? 'mp4' : 'webm'));
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      ev.remove(); ctx.close(); busy = false; updateButtons();
+      setStatus('Done! The video with the dub was saved.');
+    };
+    ev.onended = () => setTimeout(() => rec.stop(), 300);
+    const o = d.offset || 0; if(o < 0) ea.currentTime = -o;
+    await ctx.resume(); rec.start(); ev.play(); if(o > 0) setTimeout(() => ea.play(), o * 1000); else ea.play();
+  }catch(err){
+    ev.remove(); ctx.close(); busy = false; updateButtons();
+    setStatus('Could not create the combined video in this browser. You can still save the audio only.');
+  }
+}
+$('btnMerge').onclick = () => mergeVideo(selDub());
+
+/* ---------- theme & reset ---------- */
+$('btnTheme').onclick = () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark';
+};
+$('btnReset').onclick = () => armDelete($('btnReset'), () => {
+  scenes.forEach(s => URL.revokeObjectURL(s.video)); dubs.forEach(d => URL.revokeObjectURL(d.audio));
+  ['scenes','dubs','meta'].forEach(n => DB.clear(n));
+  scenes = []; dubs = []; members = []; curMember = ''; cur = null; selId = null;
+  vid.pause(); vid.removeAttribute('src'); vid.load(); vid.style.display = 'none'; $('empty').style.display = 'flex';
+  applyAudio(); setStatus('Everything was cleared.'); renderAll();
+  const b = $('btnReset'); delete b.dataset.armed; b.textContent = 'Reset'; b.classList.remove('danger');
+});
+
+/* ---------- init ---------- */
+renderAll();
+(async function init(){
+  const ok = await DB.open();
+  $('saved').textContent = ok ? '● Auto-saved on this device' : 'Not saved: closing the page clears everything';
+  if(ok){
+    (await DB.all('scenes')).forEach(r => { scenes.push({id:r.id, name:r.name, blob:r.blob, video:URL.createObjectURL(r.blob)}); nextId = Math.max(nextId, r.id + 1); });
+    (await DB.all('dubs')).forEach(r => { dubs.push({id:r.id, member:r.member, sceneId:r.sceneId, blob:r.blob, mime:r.mime, dur:r.dur, take:r.take || 1, offset:r.offset || 0, audio:URL.createObjectURL(r.blob)}); nextDub = Math.max(nextDub, r.id + 1); });
+    (await DB.all('meta')).forEach(r => {
+      if(r.k === 'state'){ members = r.members || []; curMember = r.curMember || members[0] || ''; }
+    });
+    scenes.sort((a, b) => a.id - b.id); dubs.sort((a, b) => a.id - b.id);
+  }
+  if(scenes.length) loadScene(scenes[0].id); else renderAll();
+})();
+</script>
+</body>
+</html>
