@@ -11,7 +11,7 @@ video: scenes/ben2.mp4
 0:07 Anna: You always say that.
 
 # Örnek Film 2 - Havaalanı sahnesi
-video: scenes/ornek2.mp4
+video: scenes/IMG_7907.mp4
 Mark: Are you ready to go?
 Lisa: I think so.
 Mark: Then let's not miss the flight.
