@@ -17,6 +17,8 @@ video: scenes/ben2.mp4
 
 # Örnek Film 2 - Havaalanı sahnesi
 video: scenes/icerde.mp4
-0:00.5 Mark: Are you ready to go?
-0:03 Lisa: I think so.
-0:06 Mark: Then let's not miss the flight.
+0:02 Mark: İn baba in?
+0:04 Lisa: noldu evlat.
+0:06 Mark: in baba.
+0:09 SARP: ANLADI PUST
+0:13 MUDUR : DUR
