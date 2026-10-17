@@ -22,3 +22,15 @@ video: scenes/icerde.mp4
 0:06 Mark: in baba.
 0:09 SARP: ANLADI PUST
 0:13 MUDUR : DUR
+
+# series - medcezir
+video: scenes/medcezir1.mp4
+00:02 mira: Hi.
+00:10 mira: I'm Mira.
+00:11 yaman: Really?
+00:13 yaman: What does Mira mean?
+00:16 mira: It's named after a comet, an ancient city, and it also means 'cow' in Spanish.
+00:25 yaman: Yeah, they clearly put a lot of thought into naming you.
+00:31 yaman: Hey, don't get me wrong, it's a great name. I meant it as a compliment.
+00:36 mira: Thanks. You didn't tell me your name, though.
+00:41 yaman: I'm Yaman. Nothing fancy like a comet or anything, just plain Yaman.
