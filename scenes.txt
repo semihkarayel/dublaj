@@ -9,11 +9,16 @@
 // Konuşan kişiyi "İsim: replik" şeklinde yazabilirsin (isim en fazla 20 karakter).
 // "//" ile başlayan satırlar not sayılır, siteye yansımaz.
 
-# Örnek Film 1 - Kahve sahnesi
-video: scenes/ben2.mp4
-0:01 Anna: Where were you last night?
-0:04 Tom: I was working late, I promise.
-0:07 Anna: You always say that.
+# Film 1 - Recep İvedik
+video: scenes/recepivedik.mp4
+0:00 Gofik: Bro, I wish we'd gone somewhere better, this place is so crappy.
+0:03 Recep: Man, this place is the cradle of quality, it's Modesan! This is my brother Metin's place, Metin runs this whole industry, that's why I brought you here!
+0:11 Metin: Vay vay vay vay vay This jacket turned out top-notch! Wear it in good health, my friend.
+0:18 Recep: Bro, the fabric is great, but do you think it's a bit too bold?
+0:21 Metin: No way, man, what bold? Could there be anything more original than this, my Receb? Just look at it, it fits like a glove, brother!
+0:28 Gofik: Man, I don't think this looks good at all.
+0:29 Metin: WHAT DO YOU MEAN IT DIDN'T WORK OUT, GOFİK!, What do you even know about fashion, I'm the guru here!
+0:34 Recep: WHAT DO YOU EVEN KNOW ABOUT FASHION, YOU BLOCKHEAD?! THIS GUY IS AN ABSOLUTE LEGEND IN THIS INDUSTRY!.
 
 # Örnek Film 2 - Havaalanı sahnesi
 video: scenes/icerde.mp4
