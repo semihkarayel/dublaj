@@ -79,6 +79,25 @@ input[type=range]{accent-color:var(--fg);width:100%;max-width:300px}
 .dub .what{font-size:.78rem;color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dub .du{font-size:.75rem;color:var(--muted)}
 .dub button{padding:0 8px;min-height:32px;border:0;font-size:.8rem}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.scard{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;background:var(--card)}
+.scard.active{outline:2px solid var(--fg);outline-offset:-1px}
+.sthumb{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#000;pointer-events:none}
+.stitle{font-weight:600;font-size:.88rem;padding:8px 10px 0;line-height:1.3}
+.smeta{font-size:.75rem;color:var(--muted);padding:2px 10px 8px}
+.scard button{position:absolute;top:4px;right:4px;min-height:28px;padding:0 9px;background:rgba(0,0,0,.6);color:#fff;border:0}
+.player{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px;align-items:start}
+.player.nolines{grid-template-columns:1fr}
+.lines{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.lines h2{margin-bottom:8px}
+.lbody{position:relative;overflow:auto;max-height:52vh;display:flex;flex-direction:column;gap:6px}
+.ln{padding:7px 9px;border-radius:9px;font-size:.92rem;line-height:1.4}
+.ln .who{font-weight:700;margin-right:6px}
+.ln .tt{display:block;font-size:.7rem;color:var(--muted)}
+.ln.on{background:var(--soft);box-shadow:inset 3px 0 0 var(--fg)}
+@media (max-width:820px){.player{grid-template-columns:1fr}.lbody{max-height:220px}}
+.vox-row{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:.9rem;color:var(--muted)}
+.vox-l{display:flex;gap:8px;align-items:center;cursor:pointer}
 .drag{outline:2px dashed var(--muted);outline-offset:6px;border-radius:12px}
 </style>
 </head>
@@ -109,27 +128,35 @@ input[type=range]{accent-color:var(--fg);width:100%;max-width:300px}
     <div class="main">
       <div class="c-scn" id="scenesCard">
         <h2>Scenes</h2>
-        <div class="chips" id="sceneList"></div>
-        <div class="row" style="margin-top:10px"><label class="btn" for="file">＋ Add scene</label><span class="note">or drop video files here</span></div>
+        <div class="sgrid" id="sceneList"></div>
+        <div class="note" style="margin-top:10px"><label for="file" style="text-decoration:underline;cursor:pointer">Add a video from this device</label> (only you will see it)</div>
         <input class="vh" type="file" id="file" accept="video/*" multiple>
       </div>
 
       <div class="c-stage" style="display:flex;flex-direction:column;gap:14px">
+        <div class="player" id="player">
         <div class="stage">
-          <label class="empty" id="empty" for="file"><b>＋</b>Add a movie scene to start<span class="note">Tap here and choose a video</span></label>
+          <div class="empty" id="empty"><b>🎬</b>Choose a scene to start<span class="note">Pick one from the list above</span></div>
           <video id="vid" playsinline webkit-playsinline muted style="display:none"></video>
           <div class="overlay" id="count"></div>
           <div class="badge" id="rec">● REC</div>
         </div>
+        <div class="lines" id="linesBox" style="display:none"><h2>Lines</h2><div class="lbody" id="lines"></div></div>
+        </div>
 
         <div class="row">
           <button class="btn primary rec" id="btnRec" disabled><i></i><span id="recLabel">Record</span></button>
+          <button class="btn" id="btnOrig" disabled>▶ Watch original</button>
           <div id="live">
             <button class="btn primary" id="btnPause">Pause</button>
             <button class="btn" id="btnStop">Stop &amp; save</button>
             <span class="time" id="time">00:00</span>
             <div class="meter" title="Microphone level"><div id="meterBar"></div></div>
           </div>
+        </div>
+        <div class="vox-row">
+          <label class="vox-l"><input type="checkbox" id="vox"> Pause automatically when I stop talking</label>
+          <span id="voxBox" style="display:none">Sensitivity <input type="range" id="voxSens" min="0" max="100" value="50" style="width:140px;vertical-align:middle"></span>
         </div>
         <div id="status"></div>
 
@@ -161,6 +188,7 @@ const $ = id => document.getElementById(id);
 const vid = $('vid'), aud = $('aud');
 let scenes = [], dubs = [], members = [], curMember = '', cur = null, selId = null, nextId = 1, nextDub = 1;
 let stream, recorder, chunks = [], recording = false, paused = false, busy = false, dubMode = false;
+let remoteMsg = '', activeLn = -1;
 let elapsed = 0, lastT = 0, timer = null, actx = null, raf = 0, audT = 0, playD = null;
 const EMBED = (() => { try{ return window.self !== window.top; }catch(e){ return true; } })();
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -199,6 +227,49 @@ const extOf = m => (m || '').includes('mp4') ? 'm4a' : (m || '').includes('ogg')
 const fmt = s => { s = Math.round(s || 0); return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); };
 const pickMime = list => list.find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
 function download(url, name){ const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+const hueOf = n => { let h = 0; for(const c of n) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+function parseScenes(txt){
+  const out = []; let cur = null;
+  txt.split(/\r?\n/).forEach(raw => {
+    const line = raw.trim();
+    if(!line || line.startsWith('//')) return;
+    if(line.startsWith('#')){ cur = {title: line.replace(/^#+\s*/, ''), video: '', lines: []}; out.push(cur); return; }
+    if(!cur) return;
+    const v = line.match(/^video\s*:\s*(.+)$/i); if(v){ cur.video = v[1].trim(); return; }
+    let t = null, rest = line; const tm = line.match(/^\[?(\d{1,2}):(\d{2}(?:\.\d+)?)\]?\s+(.*)$/);
+    if(tm){ t = Number(tm[1]) * 60 + Number(tm[2]); rest = tm[3]; }
+    const sp = rest.match(/^([^:]{1,20}):\s+(.+)$/);
+    cur.lines.push({t, who: sp ? sp[1].trim() : '', text: sp ? sp[2].trim() : rest});
+  });
+  return out.filter(s => s.video);
+}
+async function loadRemote(){
+  try{
+    const r = await fetch('scenes.txt', {cache: 'no-store'});
+    if(!r.ok) throw new Error(r.status);
+    parseScenes(await r.text()).forEach(x => scenes.push({id: 'g:' + x.video, name: x.title, video: x.video, lines: x.lines, local: false}));
+    if(!scenes.length) remoteMsg = 'scenes.txt was found, but no scene is listed in it yet.';
+  }catch(e){ remoteMsg = 'Could not load scenes.txt. The scenes are loaded from the GitHub site, so open this page from its GitHub address.'; }
+}
+function renderLines(s){
+  const box = $('lines'); box.innerHTML = ''; activeLn = -1;
+  const has = !!(s && s.lines && s.lines.length);
+  $('linesBox').style.display = has ? 'block' : 'none'; $('player').classList.toggle('nolines', !has);
+  if(!has) return;
+  s.lines.forEach(l => {
+    const d = el('div','ln',box);
+    if(l.who){ const w = el('span','who',d); w.textContent = l.who; w.style.color = 'hsl(' + hueOf(l.who) + ',65%,55%)'; }
+    el('span','tx',d).textContent = l.text;
+    if(l.t != null){ el('span','tt',d).textContent = fmt(l.t); d.style.cursor = 'pointer'; d.onclick = () => { vid.currentTime = l.t; }; }
+  });
+}
+vid.addEventListener('timeupdate', () => {
+  const s = current(); if(!s || !s.lines || !s.lines.length) return;
+  let a = -1; s.lines.forEach((l, i) => { if(l.t != null && l.t <= vid.currentTime + 0.15) a = i; });
+  if(a === activeLn) return; activeLn = a;
+  const box = $('lines'); [...box.children].forEach((c, i) => c.classList.toggle('on', i === a));
+  if(a >= 0) box.scrollTop = box.children[a].offsetTop - box.clientHeight / 3;
+});
 function avatar(name){ const a = document.createElement('span'); a.className = 'av'; a.textContent = (name[0] || '?').toUpperCase(); let h = 0; for(const c of name) h = (h * 31 + c.charCodeAt(0)) % 360; a.style.background = 'hsl(' + h + ',45%,45%)'; return a; }
 function armDelete(btn, fn){
   if(btn.dataset.armed){ fn(); return; }
@@ -213,6 +284,7 @@ function setSyncUI(d){ const o = (d && d.offset) || 0; $('sync').value = Math.ro
 function updateButtons(){
   const s = current(), d = selDub();
   $('btnRec').style.display = recording ? 'none' : 'inline-flex';
+  $('btnOrig').style.display = recording ? 'none' : 'inline-flex'; $('btnOrig').disabled = !s || busy;
   $('btnRec').disabled = !s || !curMember || busy;
   $('recLabel').textContent = !curMember && s ? 'Add a name first' : s && getDub(s.id, curMember) ? 'Record new take' : 'Record';
   $('live').style.display = recording ? 'flex' : 'none';
@@ -236,17 +308,20 @@ function renderMembers(){
     x.onclick = e => { e.stopPropagation(); if(!busy && !recording) armDelete(x, () => removeMember(m)); };
   });
 }
+const thumbs = {};
 function renderScenes(){
   const box = $('sceneList'); box.innerHTML = '';
-  if(!scenes.length){ el('span','note',box).textContent = 'No scenes yet.'; return; }
+  if(!scenes.length){ const m = el('div','note',box); m.style.gridColumn = '1/-1'; m.textContent = remoteMsg || 'No scenes yet.'; return; }
   scenes.forEach(s => {
     const n = dubs.filter(d => d.sceneId === s.id).length;
-    const c = el('div', 'chip' + (s.id === cur ? ' active' : ''), box);
-    el('span','nm',c).textContent = s.name;
-    el('span','cnt',c).textContent = n ? n + (n > 1 ? ' dubs' : ' dub') : '';
-    const x = el('button','',c); x.textContent = '×'; x.title = 'Remove scene and its dubs';
+    const c = el('div', 'scard' + (s.id === cur ? ' active' : ''), box);
+    let v = thumbs[s.id];
+    if(!v){ v = thumbs[s.id] = document.createElement('video'); v.className = 'sthumb'; v.src = s.local ? s.video : s.video + '#t=0.5'; v.muted = true; v.preload = 'metadata'; v.setAttribute('playsinline', ''); }
+    c.appendChild(v);
+    el('div','stitle',c).textContent = s.name;
+    el('div','smeta',c).textContent = (n ? n + (n > 1 ? ' dubs' : ' dub') : 'No dubs yet') + (s.local ? ' · this device' : '');
+    if(s.local){ const x = el('button','',c); x.textContent = '×'; x.title = 'Remove this scene'; x.onclick = e => { e.stopPropagation(); if(!busy && !recording) armDelete(x, () => removeScene(s.id)); }; }
     c.onclick = () => { if(!busy && !recording) loadScene(s.id); };
-    x.onclick = e => { e.stopPropagation(); if(!busy && !recording) armDelete(x, () => removeScene(s.id)); };
   });
 }
 function renderDubs(){
@@ -276,8 +351,9 @@ function loadScene(id){
   cur = id; dubMode = false;
   const s = current(), d = getDub(id, curMember);
   selId = d ? d.id : null;
-  vid.src = s.video; vid.muted = true; vid.controls = true; vid.style.display = 'block';
+  vid.src = s.video; vid.muted = false; vid.controls = true; vid.style.display = 'block';
   $('empty').style.display = 'none';
+  renderLines(s);
   applyAudio();
   setStatus(!curMember ? 'Add a name on the left, then press Record.' : d ? curMember + ' already dubbed this scene. Watch it or record a new take.' : 'Ready. Press Record when you are.');
   renderAll();
@@ -299,7 +375,7 @@ function removeScene(id){
   URL.revokeObjectURL(scenes.find(x => x.id === id).video); DB.del('scenes', id);
   scenes = scenes.filter(x => x.id !== id);
   if(cur === id){
-    cur = null; selId = null; vid.pause(); vid.removeAttribute('src'); vid.load(); vid.style.display = 'none'; $('empty').style.display = 'flex';
+    cur = null; selId = null; vid.pause(); vid.removeAttribute('src'); vid.load(); vid.style.display = 'none'; $('empty').style.display = 'flex'; renderLines(null);
     applyAudio(); setStatus('');
     if(scenes.length) return loadScene(scenes[0].id);
   }
@@ -332,7 +408,7 @@ const isVideo = f => (f.type && f.type.startsWith('video/')) || /\.(mp4|mov|m4v|
 function addFiles(list){
   const files = [...list].filter(isVideo); if(!files.length) return;
   const first = nextId;
-  files.forEach(f => { const s = {id: nextId++, name: f.name || ('scene-' + nextId), blob: f, video: URL.createObjectURL(f)}; scenes.push(s); DB.put('scenes', {id:s.id, name:s.name, blob:f}); });
+  files.forEach(f => { const s = {id: nextId++, name: f.name || ('scene-' + nextId), blob: f, video: URL.createObjectURL(f), local: true, lines: []}; scenes.push(s); DB.put('scenes', {id:s.id, name:s.name, blob:f}); });
   if(cur === null && !busy && !recording) loadScene(first); else renderAll();
 }
 $('file').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
@@ -352,7 +428,8 @@ function startMeter(){
     const src = actx.createMediaStreamSource(stream), an = actx.createAnalyser(); an.fftSize = 512; src.connect(an);
     const buf = new Uint8Array(an.fftSize);
     const loop = () => { an.getByteTimeDomainData(buf); let s = 0; for(const v of buf){ const x = (v - 128) / 128; s += x * x; }
-      $('meterBar').style.width = (paused ? 0 : Math.min(1, Math.sqrt(s / buf.length) * 4) * 100) + '%'; raf = requestAnimationFrame(loop); };
+      const rms = Math.sqrt(s / buf.length);
+      $('meterBar').style.width = (paused && !autoPaused ? 0 : Math.min(1, rms * 4) * 100) + '%'; voxStep(rms); raf = requestAnimationFrame(loop); };
     loop();
   }catch(e){}
 }
@@ -387,7 +464,7 @@ async function startRecording(){
     const blob = new Blob(chunks,{type}), url = URL.createObjectURL(blob), dur = elapsed / 1000;
     const d = {id: nextDub++, member, sceneId: s.id, audio: url, blob, mime: type, dur, take: takes(s.id, member).length + 1, offset: 0};
     dubs.push(d); saveDub(d); selId = d.id; applyAudio();
-    vid.controls = true; busy = false;
+    vid.controls = true; vid.muted = false; busy = false;
     setStatus('Saved! Press "Watch dub" to see the result.');
     renderAll();
   };
@@ -395,23 +472,38 @@ async function startRecording(){
   aud.pause(); vid.pause(); vid.currentTime = 0; vid.muted = true; vid.controls = false;
   setStatus('Get ready, ' + member + '…');
   await countdown();
-  recorder.start(); recording = true; paused = false;
+  recorder.start(); recording = true; paused = false; autoPaused = false; lastVoice = performance.now() + 1500;
   $('rec').style.display = 'block'; startTimer(); startMeter(); updateButtons();
-  setStatus('Recording… speak along with the scene. You can pause any time.');
+  setStatus($('vox').checked ? 'Recording… the scene waits when you are silent and continues when you speak.' : 'Recording… speak along with the scene. You can pause any time.');
   vid.play();
 }
 function togglePause(){
   if(!recording) return;
   if(!paused){ recorder.pause(); vid.pause(); paused = true; setStatus('Paused. Resume to continue from this exact point.'); }
-  else { recorder.resume(); vid.play(); paused = false; setStatus('Recording… speak along with the scene.'); }
+  else { recorder.resume(); vid.play(); paused = false; autoPaused = false; lastVoice = performance.now(); setStatus('Recording… speak along with the scene.'); }
   updateButtons();
 }
 function stopRecording(){
   if(!recording) return;
-  recording = false; paused = false; clearInterval(timer); vid.pause(); recorder.stop();
+  recording = false; paused = false; autoPaused = false; clearInterval(timer); vid.pause(); recorder.stop();
   stream.getTracks().forEach(t => t.stop()); stopMeter();
   $('rec').style.display = 'none'; updateButtons();
 }
+let autoPaused = false, lastVoice = 0;
+function voxStep(rms){
+  if(!recording || !$('vox').checked) return;
+  const thr = 0.05 - 0.045 * ($('voxSens').value / 100), now = performance.now();
+  if(rms > thr){
+    lastVoice = now;
+    if(autoPaused){ autoPaused = false; paused = false; recorder.resume(); vid.play(); setStatus('Recording…'); updateButtons(); }
+  } else if(!paused && now - lastVoice > 1200){
+    autoPaused = true; paused = true; recorder.pause(); vid.pause();
+    setStatus('Waiting for your voice… the scene continues when you speak.'); updateButtons();
+  }
+}
+function saveVox(){ DB.put('meta', {k:'vox', on:$('vox').checked, sens:Number($('voxSens').value)}); }
+$('vox').onchange = () => { $('voxBox').style.display = $('vox').checked ? 'inline' : 'none'; saveVox(); };
+$('voxSens').onchange = saveVox;
 $('btnRec').onclick = startRecording;
 $('btnPause').onclick = togglePause;
 $('btnStop').onclick = stopRecording;
@@ -446,6 +538,11 @@ vid.addEventListener('ended', () => {
   aud.pause();
 });
 $('btnPlay').onclick = () => watchDub();
+$('btnOrig').onclick = () => {
+  if(busy || recording) return;
+  vid.pause(); aud.pause(); clearTimeout(audT); dubMode = false; vid.currentTime = 0; vid.muted = false; try{ vid.volume = 1; }catch(e){}
+  setStatus('Playing the original scene.'); vid.play();
+};
 $('origVol').addEventListener('input', () => { if(dubMode) setOrigVol(); });
 vid.addEventListener('pause', () => { if(dubMode && !recording){ clearTimeout(audT); aud.pause(); } });
 vid.addEventListener('play', () => { if(dubMode && !recording && aud.paused) audGo(); });
@@ -529,24 +626,26 @@ $('btnTheme').onclick = () => {
 $('btnReset').onclick = () => armDelete($('btnReset'), () => {
   scenes.forEach(s => URL.revokeObjectURL(s.video)); dubs.forEach(d => URL.revokeObjectURL(d.audio));
   ['scenes','dubs','meta'].forEach(n => DB.clear(n));
-  scenes = []; dubs = []; members = []; curMember = ''; cur = null; selId = null;
+  scenes = scenes.filter(s => s.local); dubs = []; members = []; curMember = ''; cur = null; selId = null;
   vid.pause(); vid.removeAttribute('src'); vid.load(); vid.style.display = 'none'; $('empty').style.display = 'flex';
-  applyAudio(); setStatus('Everything was cleared.'); renderAll();
+  renderLines(null); applyAudio(); setStatus('Everything was cleared.'); renderAll();
   const b = $('btnReset'); delete b.dataset.armed; b.textContent = 'Reset'; b.classList.remove('danger');
 });
 
 /* ---------- init ---------- */
 renderAll();
 (async function init(){
+  await loadRemote(); renderAll();
   const ok = await DB.open();
   $('saved').textContent = ok ? '● Auto-saved on this device' : 'Not saved: closing the page clears everything';
   if(ok){
-    (await DB.all('scenes')).forEach(r => { scenes.push({id:r.id, name:r.name, blob:r.blob, video:URL.createObjectURL(r.blob)}); nextId = Math.max(nextId, r.id + 1); });
+    (await DB.all('scenes')).forEach(r => { scenes.push({id:r.id, name:r.name, blob:r.blob, video:URL.createObjectURL(r.blob), local:true, lines:[]}); nextId = Math.max(nextId, r.id + 1); });
     (await DB.all('dubs')).forEach(r => { dubs.push({id:r.id, member:r.member, sceneId:r.sceneId, blob:r.blob, mime:r.mime, dur:r.dur, take:r.take || 1, offset:r.offset || 0, audio:URL.createObjectURL(r.blob)}); nextDub = Math.max(nextDub, r.id + 1); });
     (await DB.all('meta')).forEach(r => {
       if(r.k === 'state'){ members = r.members || []; curMember = r.curMember || members[0] || ''; }
+      else if(r.k === 'vox'){ $('vox').checked = !!r.on; $('voxSens').value = r.sens; $('voxBox').style.display = r.on ? 'inline' : 'none'; }
     });
-    scenes.sort((a, b) => a.id - b.id); dubs.sort((a, b) => a.id - b.id);
+    dubs.sort((a, b) => a.id - b.id); dubs = dubs.filter(d => scenes.some(s => s.id === d.sceneId));
   }
   if(scenes.length) loadScene(scenes[0].id); else renderAll();
 })();
