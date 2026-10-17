@@ -1,8 +1,13 @@
-// Bu dosya sahne listesidir. Her sahne "#" ile başlar.
-// "video:" satırı videonun GitHub'daki yolunu gösterir.
-// Altındaki satırlar repliklerdir. Başa süre (dakika:saniye) yazarsan
-// video oynarken o replik otomatik vurgulanır. Süre yazmak zorunda değilsin.
-// Konuşan kişiyi "İsim: replik" şeklinde yazabilirsin.
+// SAHNE LİSTESİ
+// Her sahne "#" ile başlar. "video:" satırı videonun GitHub'daki yolunu gösterir.
+// Altındaki satırlar repliklerdir.
+//
+// ÖNEMLİ: Replik replik kayıt için HER replikün başına süre yazmalısın:
+//   dakika:saniye  (örnek 0:04  veya  0:07.5)
+// Süre, o repliğin videoda BAŞLADIĞI andır. Replik, bir sonraki replik başlayana
+// kadar (sonuncuysa videonun sonuna kadar) sürer. Süreleri küçükten büyüğe yaz.
+// Konuşan kişiyi "İsim: replik" şeklinde yazabilirsin (isim en fazla 20 karakter).
+// "//" ile başlayan satırlar not sayılır, siteye yansımaz.
 
 # Örnek Film 1 - Kahve sahnesi
 video: scenes/ben2.mp4
@@ -12,6 +17,6 @@ video: scenes/ben2.mp4
 
 # Örnek Film 2 - Havaalanı sahnesi
 video: scenes/IMG_7907.mp4
-Mark: Are you ready to go?
-Lisa: I think so.
-Mark: Then let's not miss the flight.
+0:00.5 Mark: Are you ready to go?
+0:03 Lisa: I think so.
+0:06 Mark: Then let's not miss the flight.
