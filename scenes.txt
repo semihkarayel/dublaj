@@ -5,7 +5,7 @@
 // Konuşan kişiyi "İsim: replik" şeklinde yazabilirsin.
 
 # Örnek Film 1 - Kahve sahnesi
-video: scenes/ornek1.mp4
+video: scenes/ben2.mp4
 0:01 Anna: Where were you last night?
 0:04 Tom: I was working late, I promise.
 0:07 Anna: You always say that.
