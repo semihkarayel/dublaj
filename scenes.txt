@@ -1,0 +1,17 @@
+// Bu dosya sahne listesidir. Her sahne "#" ile başlar.
+// "video:" satırı videonun GitHub'daki yolunu gösterir.
+// Altındaki satırlar repliklerdir. Başa süre (dakika:saniye) yazarsan
+// video oynarken o replik otomatik vurgulanır. Süre yazmak zorunda değilsin.
+// Konuşan kişiyi "İsim: replik" şeklinde yazabilirsin.
+
+# Örnek Film 1 - Kahve sahnesi
+video: scenes/ornek1.mp4
+0:01 Anna: Where were you last night?
+0:04 Tom: I was working late, I promise.
+0:07 Anna: You always say that.
+
+# Örnek Film 2 - Havaalanı sahnesi
+video: scenes/ornek2.mp4
+Mark: Are you ready to go?
+Lisa: I think so.
+Mark: Then let's not miss the flight.
