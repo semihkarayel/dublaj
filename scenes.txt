@@ -1,13 +1,14 @@
 // SAHNE LİSTESİ
-// Her sahne "#" ile başlar. "video:" satırı videonun GitHub'daki yolunu gösterir.
-// Altındaki satırlar repliklerdir.
+// Her sahne "#" ile başlar.
+//   video: ...       videonun GitHub'daki yolu (zorunlu)
 //
-// ÖNEMLİ: Replik replik kayıt için HER replikün başına süre yazmalısın:
-//   dakika:saniye  (örnek 0:04  veya  0:07.5)
-// Süre, o repliğin videoda BAŞLADIĞI andır. Replik, bir sonraki replik başlayana
-// kadar (sonuncuysa videonun sonuna kadar) sürer. Süreleri küçükten büyüğe yaz.
+// REPLİKLER: satırın başına süre yaz, dakika:saniye veya dakika:saniye.salise
+//   0:04            sadece başlangıç. Replik bir sonraki replik başlayana kadar sürer.
+//   0:04.32         salise hassasiyetiyle başlangıç
+//   0:04.32-0:07.80 başlangıç ve BİTİŞ (kayıt tam bu aralıkta alınır)
+//   0:04.32 -> 0:07.80 şeklinde de yazabilirsin
 // Konuşan kişiyi "İsim: replik" şeklinde yazabilirsin (isim en fazla 20 karakter).
-// "//" ile başlayan satırlar not sayılır, siteye yansımaz.
+// Süreleri küçükten büyüğe yaz. "//" ile başlayan satırlar not sayılır.
 
 # Film 1 - Recep İvedik
 video: scenes/recepivedik.mp4
