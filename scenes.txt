@@ -28,6 +28,13 @@ video: scenes/kenanramiz.mp4
 0:17 Kenan: I'm not afraid of you, Ramiz. I was never afraid of you.
 0:22-0:27 Ramiz: Then stop trembling in front of me. Act like a man.
 
+# Geniş Aile - Şükufe Zeynep Sahnesi
+video: scenes/genisaile.mp4
+0:01 Şükufe: Oh hi! It was Zeynep, right?
+0:06 Zeynep: Oh right, it was Şukufe, wasn't it? Look, Şukufe... there's something between Cevahir and me: love, respect, and I guess... you.
+0:30 Şükufe: Me? There's me between you two? Is that what you're implying?
+0:36 Zeynep: I'm not implying, I'm asking.
+
 # Medcezir - Mira Yaman Sahnesi
 video: scenes/medcezir1.mp4
 00:02 Mira: Hi.
