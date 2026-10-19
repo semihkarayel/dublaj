@@ -12,14 +12,14 @@
 
 # Recep İvedik - Gofik Sahnesi
 video: scenes/recepivedik.mp4
-0:00 Gofik: Bro, I wish we'd gone somewhere better, this place is so crappy.
-0:03 Recep: Man, this place is the cradle of quality, it's Modesan! This is my brother Metin's place, Metin runs this whole industry, that's why I brought you here!
-0:11 Metin: Vay vay vay vay vay This jacket turned out top-notch! Wear it in good health, my friend.
-0:18 Recep: Bro, the fabric is great, but do you think it's a bit too bold?
-0:21 Metin: No way, man, what bold? Could there be anything more original than this, my Receb? Just look at it, it fits like a glove, brother!
-0:28 Gofik: Man, I don't think this looks good at all.
-0:29 Metin: WHAT DO YOU MEAN IT DIDN'T WORK OUT, GOFİK!, What do you even know about fashion, I'm the guru here!
-0:34 Recep: WHAT DO YOU EVEN KNOW ABOUT FASHION, YOU BLOCKHEAD?! THIS GUY IS AN ABSOLUTE LEGEND IN THIS INDUSTRY!.
+0:00 Gofik: Bro, wish we went somewhere better, this place sucks.
+0:03 Recep: Dude, this place is top-tier Modesan! Metin runs this whole spot, that’s why we’re here!
+0:11 Metin: Woah! This jacket came out fire! Wear it in good health, man.
+0:18 Recep: Bro, fabric’s great, but ain't it a bit too loud?
+0:21 Metin: No way man, loud? It's pure original, Recep! Look, fits like a glove!
+0:28 Gofik: Dude, looks trash to me.
+0:29 Metin: WHAT D'YOU MEAN TRASH, GOFİK?! What do you know 'bout fashion? I'm the boss here!
+0:34 Recep: WHAT D'YOU KNOW 'BOUT FASHION, YOU DUMBASS?! THIS GUY'S A LEGEND!
 
 # Ezel - Kenan Ramiz Sahnesi
 video: scenes/kenanramiz.mp4
