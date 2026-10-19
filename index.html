@@ -44,7 +44,7 @@ button.primary:hover:not(:disabled){background:var(--btn);opacity:.88}
 .danger{background:var(--rec)!important;color:#fff!important;border-color:var(--rec)!important}
 #live{display:none;flex-wrap:wrap;gap:8px;align-items:center;flex:1}
 .time{font-variant-numeric:tabular-nums;font-weight:700;min-width:50px}
-.meter{position:relative;flex:1;min-width:80px;height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.meter{flex:1;min-width:80px;height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
 .meter div{height:100%;width:0;background:var(--fg);opacity:.75;transition:width .06s}
 .res{display:none;align-items:center;gap:8px 12px;flex-wrap:wrap;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 12px}
 .res .btn{min-height:38px;padding:6px 14px}
@@ -100,14 +100,6 @@ input[type=range]{accent-color:var(--fg);width:100%;max-width:300px}
 .ln.on.done{background:var(--soft);box-shadow:inset 3px 0 0 #16a34a}
 .la{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .la button{min-height:34px;padding:0 10px;font-size:.8rem}
-.meter .gm{position:absolute;top:0;bottom:0;width:2px;background:var(--rec);display:none}
-.cap{position:absolute;left:4%;right:4%;bottom:58px;text-align:center;pointer-events:none;display:none;z-index:2}
-.cap span{display:inline-block;background:rgba(0,0,0,.74);color:#fff;padding:4px 12px;border-radius:6px;font-size:clamp(.95rem,2.1vw,1.4rem);line-height:1.35;font-weight:600}
-.cap b{margin-right:6px}
-.stbar{position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:3}
-.stbar button{min-height:30px;padding:2px 10px;background:rgba(0,0,0,.55);color:#fff;border:0;font-size:.78rem}
-.stbar button.off{opacity:.55;text-decoration:line-through}
-.stage:fullscreen{border-radius:0}
 .drag{outline:2px dashed var(--muted);outline-offset:-4px;border-radius:12px}
 @media (max-width:820px){
   .top{flex-wrap:wrap;gap:8px 12px;padding:10px 14px}
@@ -139,8 +131,6 @@ input[type=range]{accent-color:var(--fg);width:100%;max-width:300px}
       <div class="empty" id="empty"><b>🎬</b>Choose a scene to start<span class="note">Pick one from the Scenes list</span></div>
       <video id="vid" playsinline webkit-playsinline style="display:none"></video>
       <div class="overlay" id="count"></div>
-      <div class="cap" id="cap"></div>
-      <div class="stbar"><button id="btnCC" title="Show / hide the lines on the video">CC</button><button id="btnFs" title="Full screen (keeps the lines visible)" style="display:none">⛶</button></div>
       <div class="badge" id="rec">● REC</div>
     </div>
     <div class="vt" id="sceneTitle"></div>
@@ -151,12 +141,12 @@ input[type=range]{accent-color:var(--fg);width:100%;max-width:300px}
         <button class="btn primary" id="btnPause">Pause</button>
         <button class="btn" id="btnStop">Stop &amp; save</button>
         <span class="time" id="time">00:00</span>
-        <div class="meter" title="Microphone level. The red line is the noise limit."><div id="meterBar"></div><i class="gm" id="gateMark"></i></div>
+        <div class="meter" title="Microphone level"><div id="meterBar"></div></div>
       </div>
     </div>
     <div class="vox-row">
-      <label class="vox-l"><input type="checkbox" id="vox"> Pause when I'm silent</label>
-      <label class="vox-l"><input type="checkbox" id="gate" checked> Block background noise</label>
+      <label class="vox-l"><input type="checkbox" id="vox"> Pause automatically when I stop talking</label>
+      <span id="voxBox" style="display:none">Sensitivity <input type="range" id="voxSens" min="0" max="100" value="50" style="width:140px;vertical-align:middle"></span>
     </div>
     <div id="status"></div>
     <div class="res" id="res">
@@ -185,8 +175,6 @@ input[type=range]{accent-color:var(--fg);width:100%;max-width:300px}
       <div style="margin-top:12px"><button class="btn" id="btnZip">⬇ Save all</button></div>
     </div>
     <div class="pane" id="tabOpts">
-      <div class="opt"><label>Background noise blocking strength</label><input type="range" id="gateStr" min="0" max="100" value="50"><div class="note">While you record, a red line on the microphone bar marks the limit. Sound below the line is muted. Your voice should go beyond the line and the background noise should stay below it. Use headphones and stay close to the microphone.</div></div>
-      <div class="opt" id="voxBox" style="display:none"><label>Auto-pause sensitivity (higher = pauses more easily)</label><input type="range" id="voxSens" min="0" max="100" value="50"></div>
       <div class="opt"><label>Original sound while watching a dub <span id="volNote"></span></label><input type="range" id="origVol" min="0" max="100" value="0"></div>
       <div class="opt"><label>Voice sync: slide right to delay the voice, left to bring it earlier</label>
         <div class="slide"><input type="range" id="sync" min="-100" max="100" step="5" value="0" disabled><span class="note" id="syncVal">0.00s</span><button class="btn" id="syncReset" style="min-height:36px;padding:4px 12px">Reset</button></div></div>
@@ -204,7 +192,6 @@ let scenes = [], dubs = [], members = [], curMember = '', cur = null, selId = nu
 let stream, recorder, chunks = [], recording = false, paused = false, busy = false, dubMode = false;
 let remoteMsg = '', activeLn = -1;
 let lineMode = false, lineRaf = 0, lineRecs = [], buildChain = Promise.resolve();
-let micAn = null, micGate = null, recStream = null, micDelay = 0, capOn = true, capRaf = 0;
 let elapsed = 0, lastT = 0, timer = null, actx = null, raf = 0, audT = 0, playD = null;
 const EMBED = (() => { try{ return window.self !== window.top; }catch(e){ return true; } })();
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -271,7 +258,7 @@ async function loadRemote(){
 }
 function renderLines(s){
   const box = $('lines'); box.innerHTML = ''; activeLn = -1;
-  $('sceneTitle').textContent = s ? s.name : ''; setCap(null);
+  $('sceneTitle').textContent = s ? s.name : '';
   const has = !!(s && s.lines && s.lines.length);
   if(!has){ $('linesHead').textContent = 'Lines'; el('div','note',box).textContent = s ? 'This scene has no lines yet. Add them to scenes.txt.' : 'Choose a scene to see its lines.'; return; }
   const mine = l => lineRecs.find(r => r.member === curMember && r.sceneId === s.id && r.lt === l.t);
@@ -293,36 +280,14 @@ function renderLines(s){
     }
   });
 }
-function setCap(l){
-  const c = $('cap');
-  if(!l || !capOn){ c.style.display = 'none'; return; }
-  c.innerHTML = ''; const sp = el('span','',c);
-  if(l.who){ const b = el('b','',sp); b.textContent = l.who + ':'; b.style.color = 'hsl(' + hueOf(l.who) + ',85%,72%)'; }
-  sp.appendChild(document.createTextNode(l.text)); c.style.display = 'block';
-}
-function syncLines(){
-  const s = current(); if(!s || !s.lines || !s.lines.length){ if(activeLn !== -1){ activeLn = -1; setCap(null); } return; }
-  const ct = vid.currentTime; let a = -1;
-  s.lines.forEach((l, i) => { if(l.t != null && l.t <= ct + 0.05) a = i; });
-  if(a >= 0 && s.lines[a].e != null && ct > s.lines[a].e + 0.05) a = -1;
+vid.addEventListener('timeupdate', () => {
+  const s = current(); if(!s || !s.lines || !s.lines.length) return;
+  let a = -1; s.lines.forEach((l, i) => { if(l.t != null && l.t <= vid.currentTime + 0.15) a = i; });
+  if(a >= 0 && s.lines[a].e != null && vid.currentTime > s.lines[a].e + 0.15) a = -1;
   if(a === activeLn) return; activeLn = a;
   const box = $('lines'); [...box.children].forEach((c, i) => c.classList.toggle('on', i === a));
-  if(a >= 0 && box.children[a]) box.scrollTop = box.children[a].offsetTop - box.clientHeight / 3;
-  setCap(a >= 0 ? s.lines[a] : null);
-}
-vid.addEventListener('timeupdate', syncLines);
-vid.addEventListener('seeked', syncLines);
-vid.addEventListener('play', () => { cancelAnimationFrame(capRaf); const f = () => { syncLines(); capRaf = requestAnimationFrame(f); }; f(); });
-['pause','ended'].forEach(ev => vid.addEventListener(ev, () => { cancelAnimationFrame(capRaf); syncLines(); }));
-$('btnCC').onclick = () => { capOn = !capOn; $('btnCC').classList.toggle('off', !capOn); activeLn = -2; syncLines(); };
-if(document.fullscreenEnabled || document.webkitFullscreenEnabled){
-  vid.setAttribute('controlsList', 'nofullscreen'); $('btnFs').style.display = 'inline-flex';
-  $('btnFs').onclick = () => {
-    const st = document.querySelector('.stage');
-    if(document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    else (st.requestFullscreen || st.webkitRequestFullscreen).call(st);
-  };
-}
+  if(a >= 0) box.scrollTop = box.children[a].offsetTop - box.clientHeight / 3;
+});
 const fmtT = t => { const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + (Math.round(s * 100) / 100); };
 function avatar(name){ const a = document.createElement('span'); a.className = 'av'; a.textContent = (name[0] || '?').toUpperCase(); let h = 0; for(const c of name) h = (h * 31 + c.charCodeAt(0)) % 360; a.style.background = 'hsl(' + h + ',45%,45%)'; return a; }
 function armDelete(btn, fn){
@@ -483,17 +448,17 @@ async function countdown(){
   o.style.display = 'none';
 }
 function startMeter(){
-  if(!micAn) return;
-  const an = micAn, buf = new Uint8Array(an.fftSize);
-  placeMark();
-  const loop = () => {
-    an.getByteTimeDomainData(buf); let s = 0; for(const v of buf){ const x = (v - 128) / 128; s += x * x; }
-    const rms = Math.sqrt(s / buf.length);
-    $('meterBar').style.width = (paused && !autoPaused ? 0 : Math.min(1, rms * 4) * 100) + '%'; gateStep(rms); voxStep(rms); raf = requestAnimationFrame(loop);
-  };
-  loop();
+  try{
+    actx = new (window.AudioContext || window.webkitAudioContext)(); if(actx.resume) actx.resume();
+    const src = actx.createMediaStreamSource(stream), an = actx.createAnalyser(); an.fftSize = 512; src.connect(an);
+    const buf = new Uint8Array(an.fftSize);
+    const loop = () => { an.getByteTimeDomainData(buf); let s = 0; for(const v of buf){ const x = (v - 128) / 128; s += x * x; }
+      const rms = Math.sqrt(s / buf.length);
+      $('meterBar').style.width = (paused && !autoPaused ? 0 : Math.min(1, rms * 4) * 100) + '%'; voxStep(rms); raf = requestAnimationFrame(loop); };
+    loop();
+  }catch(e){}
 }
-function stopMeter(){ cancelAnimationFrame(raf); const c = actx; actx = null; micAn = null; micGate = null; setTimeout(() => { try{ if(c) c.close(); }catch(e){} }, 400); $('meterBar').style.width = '0%'; }
+function stopMeter(){ cancelAnimationFrame(raf); try{ if(actx) actx.close(); }catch(e){} actx = null; $('meterBar').style.width = '0%'; }
 function startTimer(){
   elapsed = 0; lastT = performance.now();
   timer = setInterval(() => { const n = performance.now(); if(!paused) elapsed += n - lastT; lastT = n;
@@ -509,21 +474,21 @@ function micError(err){
 async function startRecording(){
   const s = current(), member = curMember;
   if(!s || !member || busy) return;
-  lineMode = false; laud.pause(); cancelAnimationFrame(lineRaf); prepCtx();
+  lineMode = false; laud.pause(); cancelAnimationFrame(lineRaf);
   busy = true; updateButtons();
   try{
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nomic');
-    stream = await navigator.mediaDevices.getUserMedia(micConstraints()); await buildMic();
-  }catch(err){ closeCtx(); busy = false; updateButtons(); setStatus(micError(err)); return; }
-  if(!window.MediaRecorder){ closeCtx(); stream.getTracks().forEach(t => t.stop()); busy = false; updateButtons(); setStatus('This browser cannot record audio. Please update it or try Chrome / Safari 14.3+.'); return; }
+    stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+  }catch(err){ busy = false; updateButtons(); setStatus(micError(err)); return; }
+  if(!window.MediaRecorder){ stream.getTracks().forEach(t => t.stop()); busy = false; updateButtons(); setStatus('This browser cannot record audio. Please update it or try Chrome / Safari 14.3+.'); return; }
   const mime = pickMime(['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg']);
-  recorder = mime ? new MediaRecorder(recStream || stream,{mimeType:mime}) : new MediaRecorder(recStream || stream);
+  recorder = mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
   chunks = [];
   recorder.ondataavailable = ev => { if(ev.data.size) chunks.push(ev.data); };
   recorder.onstop = () => {
     const type = recorder.mimeType || mime || 'audio/mp4';
     const blob = new Blob(chunks,{type}), url = URL.createObjectURL(blob), dur = elapsed / 1000;
-    const d = {id: nextDub++, member, sceneId: s.id, audio: url, blob, mime: type, dur, take: takes(s.id, member).filter(x => !x.fromLines).length + 1, offset: -micDelay};
+    const d = {id: nextDub++, member, sceneId: s.id, audio: url, blob, mime: type, dur, take: takes(s.id, member).filter(x => !x.fromLines).length + 1, offset: 0};
     dubs.push(d); saveDub(d); selId = d.id; applyAudio();
     vid.controls = true; vid.muted = false; busy = false;
     setStatus('Saved! Press "Watch dub" to see the result.');
@@ -566,41 +531,8 @@ function voxStep(rms){
   }
 }
 function saveVox(){ DB.put('meta', {k:'vox', on:$('vox').checked, sens:Number($('voxSens').value)}); }
-$('vox').onchange = () => { $('voxBox').style.display = $('vox').checked ? 'block' : 'none'; saveVox(); };
+$('vox').onchange = () => { $('voxBox').style.display = $('vox').checked ? 'inline' : 'none'; saveVox(); };
 $('voxSens').onchange = saveVox;
-const gateThr = () => 0.004 + 0.036 * ($('gateStr').value / 100);
-function placeMark(){ $('gateMark').style.display = $('gate').checked ? 'block' : 'none'; $('gateMark').style.left = Math.min(100, gateThr() * 400) + '%'; }
-function saveGate(){ DB.put('meta', {k:'gate', on:$('gate').checked, str:Number($('gateStr').value)}); }
-$('gate').onchange = () => { saveGate(); placeMark(); };
-$('gateStr').oninput = placeMark; $('gateStr').onchange = saveGate;
-placeMark();
-const micConstraints = () => ({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:false, channelCount:1, voiceIsolation:true}});
-function prepCtx(){
-  try{ if(actx){ try{ actx.close(); }catch(e){} } actx = new (window.AudioContext || window.webkitAudioContext)(); if(actx.resume) actx.resume(); }catch(e){ actx = null; }
-}
-function closeCtx(){ try{ if(actx) actx.close(); }catch(e){} actx = null; micAn = null; micGate = null; }
-async function buildMic(){
-  recStream = stream; micDelay = 0; micGate = null; micAn = null;
-  try{
-    if(!actx) return;
-    if(actx.resume) await actx.resume();
-    if(actx.state !== 'running') return;
-    const src = actx.createMediaStreamSource(stream), an = actx.createAnalyser(); an.fftSize = 512; src.connect(an); micAn = an;
-    if($('gate').checked){
-      const hp = actx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90;
-      const dl = actx.createDelay(0.1); dl.delayTime.value = 0.03;
-      const g = actx.createGain(), dest = actx.createMediaStreamDestination();
-      src.connect(hp); hp.connect(dl); dl.connect(g); g.connect(dest);
-      recStream = dest.stream; micDelay = 0.03; micGate = {g, open: true, last: performance.now()};
-    }
-  }catch(e){ recStream = stream; micDelay = 0; micGate = null; }
-}
-function gateStep(rms){
-  const G = micGate; if(!G || !actx) return;
-  const now = performance.now();
-  if(rms > gateThr()){ G.last = now; if(!G.open){ G.open = true; G.g.gain.setTargetAtTime(1, actx.currentTime, 0.004); } }
-  else if(G.open && now - G.last > 350){ G.open = false; G.g.gain.setTargetAtTime(0.03, actx.currentTime, 0.12); }
-}
 const laud = new Audio();
 const saveLine = r => DB.put('lines', {key:r.key, member:r.member, sceneId:r.sceneId, lt:r.lt, start:r.start, blob:r.blob, mime:r.mime, dur:r.dur});
 function wavBlob(data, sr){
@@ -648,17 +580,16 @@ async function recordLine(idx){
   const s = current(), member = curMember;
   if(!s || !member || busy || recording){ if(!member) setStatus('Add your name first.'); return; }
   const l = s.lines[idx]; if(!l || l.t == null) return;
-  prepCtx();
   busy = true; updateButtons();
   try{
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nomic');
-    stream = await navigator.mediaDevices.getUserMedia(micConstraints()); await buildMic();
-  }catch(err){ closeCtx(); busy = false; updateButtons(); setStatus(micError(err)); return; }
-  if(!window.MediaRecorder){ closeCtx(); stream.getTracks().forEach(t => t.stop()); busy = false; updateButtons(); setStatus('This browser cannot record audio. Please update it or try Chrome / Safari 14.3+.'); return; }
+    stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+  }catch(err){ busy = false; updateButtons(); setStatus(micError(err)); return; }
+  if(!window.MediaRecorder){ stream.getTracks().forEach(t => t.stop()); busy = false; updateButtons(); setStatus('This browser cannot record audio. Please update it or try Chrome / Safari 14.3+.'); return; }
   const later = s.lines.filter(x => x.t != null && x.t > l.t).map(x => x.t);
   const endT = (l.e != null ? l.e : later.length ? Math.min(...later) : (vid.duration || l.t + 6)) + 0.3, t0 = Math.max(0, l.t - 0.3);
   const mime = pickMime(['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg']);
-  recorder = mime ? new MediaRecorder(recStream || stream,{mimeType:mime}) : new MediaRecorder(recStream || stream);
+  recorder = mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
   chunks = [];
   let startedAt = null, perfStart = 0;
   recorder.ondataavailable = ev => { if(ev.data.size) chunks.push(ev.data); };
@@ -668,7 +599,7 @@ async function recordLine(idx){
     if(startedAt !== null && blob.size > 0){
       const key = member + '|' + s.id + '|' + l.t, old = lineRecs.find(r => r.key === key);
       if(old) URL.revokeObjectURL(old.url);
-      const rec = {key, member, sceneId: s.id, lt: l.t, start: Math.max(0, startedAt - micDelay), blob, mime: type, url: URL.createObjectURL(blob), dur: (performance.now() - perfStart) / 1000};
+      const rec = {key, member, sceneId: s.id, lt: l.t, start: startedAt, blob, mime: type, url: URL.createObjectURL(blob), dur: (performance.now() - perfStart) / 1000};
       lineRecs = lineRecs.filter(r => r.key !== key); lineRecs.push(rec); saveLine(rec);
       setStatus('Line saved. Updating the full scene…'); renderLines(s); queueBuild(s.id, member);
     } else setStatus('Nothing was recorded.');
@@ -835,8 +766,7 @@ renderAll();
     (await DB.all('lines')).forEach(r => lineRecs.push(Object.assign({}, r, {url: URL.createObjectURL(r.blob)})));
     (await DB.all('meta')).forEach(r => {
       if(r.k === 'state'){ members = r.members || []; curMember = r.curMember || members[0] || ''; }
-      else if(r.k === 'gate'){ $('gate').checked = !!r.on; $('gateStr').value = r.str; placeMark(); }
-      else if(r.k === 'vox'){ $('vox').checked = !!r.on; $('voxSens').value = r.sens; $('voxBox').style.display = r.on ? 'block' : 'none'; }
+      else if(r.k === 'vox'){ $('vox').checked = !!r.on; $('voxSens').value = r.sens; $('voxBox').style.display = r.on ? 'inline' : 'none'; }
     });
     dubs.sort((a, b) => a.id - b.id); dubs = dubs.filter(d => scenes.some(s => s.id === d.sceneId)); lineRecs = lineRecs.filter(r => scenes.some(s => s.id === r.sceneId));
   }
