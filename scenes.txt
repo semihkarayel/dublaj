@@ -35,6 +35,11 @@ video: scenes/genisaile.mp4
 0:30 Şükufe: Me? There's me between you two? Is that what you're implying?
 0:36 Zeynep: I'm not implying, I'm asking.
 
+# Aşkı Memnu - Firdevs Bihter Sahnesi
+video: scenes/askimemnu.mp4
+0:00 Firdevs: Are you blackmailing me? Nothing can stop them now. They're in love with each other, can't you see?
+0:09 Bihter: That's why I'm telling you to wreck it! For this! I'm dying, can't you see? They're in love right in front of my eyes. While I writhe in torment, their happiness is killing me.
+
 # Medcezir - Mira Yaman Sahnesi
 video: scenes/medcezir1.mp4
 00:02 Mira: Hi.
