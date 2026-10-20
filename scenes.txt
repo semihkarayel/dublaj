@@ -9,6 +9,11 @@
 //   0:04.32 -> 0:07.80 şeklinde de yazabilirsin
 // Konuşan kişiyi "İsim: replik" şeklinde yazabilirsin (isim en fazla 20 karakter).
 // Süreleri küçükten büyüğe yaz. "//" ile başlayan satırlar not sayılır.
+//
+// VOKALSİZ SES (isteğe bağlı): sahnenin konuşmasız halini videoyla AYNI ADLA, sadece uzantısı .mp3 olacak şekilde
+// aynı klasöre yükle. Örnek: scenes/recepivedik.mp4 için scenes/recepivedik.mp3
+// Dublaj oynarken videonun kendi sesi yerine bu mp3 çalar. mp3 yoksa eskisi gibi çalışır.
+// scenes.txt'ye ayrıca bir şey yazmana gerek yok. mp3 videoyla aynı kesit ve aynı uzunlukta olmalı.
 
 # Recep İvedik - Gofik Sahnesi
 video: scenes/recepivedik.mp4

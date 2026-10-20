@@ -187,7 +187,8 @@ input[type=range]{accent-color:var(--fg);width:100%;max-width:300px}
       <div style="margin-top:12px"><button class="btn" id="btnZip">⬇ Save all</button></div>
     </div>
     <div class="pane" id="tabOpts">
-      <div class="opt"><label>Original sound while watching a dub <span id="volNote"></span></label><input type="range" id="origVol" min="0" max="100" value="0"></div>
+      <div class="opt"><label>Scene sound without voices (the .mp3 with the same name) while watching a dub <span id="bgNote"></span></label><input type="range" id="bgVol" min="0" max="100" value="100"></div>
+      <div class="opt"><label>Original sound while watching a dub (only used if the scene has no .mp3) <span id="volNote"></span></label><input type="range" id="origVol" min="0" max="100" value="0"></div>
       <div class="opt"><label>Voice sync: slide right to delay the voice, left to bring it earlier</label>
         <div class="slide"><input type="range" id="sync" min="-100" max="100" step="5" value="0" disabled><span class="note" id="syncVal">0.00s</span><button class="btn" id="syncReset" style="min-height:36px;padding:4px 12px">Reset</button></div></div>
       <p class="note">"Save video" combines the scene and the voice in real time, so it takes as long as the scene. Keep the tab open. It works in Chrome, Edge and Firefox on a computer. Shortcuts on a computer: Space = record / pause / resume, S = stop.</p>
@@ -200,6 +201,8 @@ input[type=range]{accent-color:var(--fg);width:100%;max-width:300px}
 <script>
 const $ = id => document.getElementById(id);
 const vid = $('vid'), aud = $('aud');
+const bgm = new Audio(); bgm.preload = 'auto';
+let bgOn = false;
 let scenes = [], dubs = [], members = [], curMember = '', cur = null, selId = null, nextId = 1, nextDub = 1;
 let stream, recorder, chunks = [], recording = false, paused = false, busy = false, dubMode = false;
 let remoteMsg = '', activeLn = -1;
@@ -406,11 +409,28 @@ function applyAudio(){
   if(d){ aud.src = d.audio; aud.dataset.u = d.audio; } else { aud.removeAttribute('src'); delete aud.dataset.u; }
   setSyncUI(d);
 }
+const bgUrl = s => (s && !s.local) ? s.video.replace(/\.[^./]+$/, '.mp3') : '';
+function updateBgUI(){ $('bgNote').textContent = !current() ? '' : bgOn ? (IOS ? '(on / off only on iPhone)' : '') : '(no .mp3 found for this scene)'; }
+async function checkBg(s){
+  bgm.pause(); bgOn = false; bgm.removeAttribute('src'); updateBgUI();
+  if(!s || s.local) return;
+  if(s.bg === undefined){
+    try{ const r = await fetch(bgUrl(s), {method: 'HEAD', cache: 'no-store'}); s.bg = r.ok; }catch(e){ s.bg = false; }
+  }
+  if(cur !== s.id) return;
+  bgOn = !!s.bg;
+  if(bgOn){ bgm.src = bgUrl(s); bgm.load(); }
+  updateBgUI();
+}
+bgm.addEventListener('error', () => {
+  if(bgOn && bgm.getAttribute('src')){ bgOn = false; updateBgUI(); if(dubMode) setMixSound(); setStatus('The .mp3 could not be played, so the original sound is used.'); }
+});
 function loadScene(id){
   cur = id; dubMode = false;
   const s = current(), d = getDub(id, curMember);
   selId = d ? d.id : null;
   vid.src = s.video; setSound('full'); vid.controls = true; vid.style.display = 'block';
+  s.bgP = checkBg(s);
   $('empty').style.display = 'none';
   renderLines(s);
   applyAudio();
@@ -530,7 +550,7 @@ async function startRecording(){
     renderAll();
   };
   dubMode = false;
-  aud.pause(); vid.pause(); vid.currentTime = 0; setSound('off'); vid.controls = false;
+  aud.pause(); bgm.pause(); vid.pause(); vid.currentTime = 0; setSound('off'); vid.controls = false;
   setStatus('Get ready, ' + member + '…');
   await countdown();
   recorder.start(); recording = true; paused = false;
@@ -606,7 +626,7 @@ function removeLine(r){
 }
 function previewLine(r){
   if(busy || recording) return;
-  vid.pause(); aud.pause(); clearTimeout(audT); dubMode = false; setSound('off');
+  vid.pause(); aud.pause(); bgm.pause(); clearTimeout(audT); dubMode = false; setSound('off');
   vid.currentTime = r.start; laud.src = r.url; laud.currentTime = 0; laud.onended = () => vid.pause();
   setStatus('Playing your take of this line…'); vid.play(); laud.play();
 }
@@ -640,7 +660,7 @@ async function recordLine(idx){
     } else setStatus('Nothing was recorded.');
     updateButtons();
   };
-  lineMode = true; dubMode = false; laud.pause(); aud.pause(); vid.pause(); vid.playbackRate = 1; setSound('off'); vid.controls = false;
+  lineMode = true; dubMode = false; laud.pause(); aud.pause(); bgm.pause(); vid.pause(); vid.playbackRate = 1; setSound('off'); vid.controls = false;
   const target = Math.max(0, l.t - 3);
   if(Math.abs(vid.currentTime - target) > 0.05) await new Promise(res => { const f = () => { vid.removeEventListener('seeked', f); res(); }; vid.addEventListener('seeked', f); vid.currentTime = target; setTimeout(res, 1500); });
   recording = true; paused = false;
@@ -678,30 +698,43 @@ function audGo(){
   if(t < 0){ aud.pause(); aud.currentTime = 0; audT = setTimeout(() => { if(dubMode && !vid.paused) aud.play(); }, -t * 1000); }
   else { aud.currentTime = t; aud.play(); }
 }
-function watchDub(d){
+function bgGo(){
+  if(!bgOn) return;
+  try{ bgm.currentTime = vid.currentTime; }catch(e){}
+  const p = bgm.play(); if(p && p.catch) p.catch(() => {});
+}
+function setMixSound(){
+  if(bgOn){ setSound('off'); const v = $('bgVol').value / 100; bgm.muted = v === 0; try{ bgm.volume = v; }catch(e){} }
+  else setOrigVol();
+}
+async function watchDub(d){
   d = d || selDub(); if(!d) return;
-  vid.pause(); aud.pause(); laud.pause(); clearTimeout(audT);
-  playD = d; dubMode = true; setOrigVol();
+  vid.pause(); aud.pause(); bgm.pause(); laud.pause(); clearTimeout(audT);
+  const sc = current(); if(sc && sc.bgP) await sc.bgP;
+  playD = d; dubMode = true; setMixSound();
   if(aud.dataset.u !== d.audio){ aud.src = d.audio; aud.dataset.u = d.audio; }
-  setStatus('Playing ' + d.member + '\'s dub…');
-  const go = () => { vid.currentTime = 0; vid.play(); audGo(); };
-  const a = ready(vid), b = ready(aud);
-  if(!a && !b) go(); else Promise.all([a, b]).then(go);
+  setStatus('Playing ' + d.member + '\'s dub' + (bgOn ? ' with the scene sound (no voices)…' : '…'));
+  const go = () => { vid.currentTime = 0; vid.play(); audGo(); bgGo(); };
+  const waits = [ready(vid), ready(aud)];
+  if(bgOn){ const c = ready(bgm); if(c) waits.push(Promise.race([c, new Promise(r => setTimeout(r, 4000))])); }
+  if(!waits[0] && !waits[1] && !waits[2]) go(); else Promise.all(waits).then(go);
 }
 vid.addEventListener('ended', () => {
   if(recording){ stopRecording(); return; }
-  aud.pause();
+  aud.pause(); bgm.pause();
 });
 $('btnPlay').onclick = () => watchDub();
 $('btnOrig').onclick = () => {
   if(busy || recording) return;
-  vid.pause(); aud.pause(); clearTimeout(audT); laud.pause(); dubMode = false; vid.currentTime = 0; setSound('full', 1);
+  vid.pause(); aud.pause(); bgm.pause(); clearTimeout(audT); laud.pause(); dubMode = false; vid.currentTime = 0; setSound('full', 1);
   setStatus('Playing the original scene.'); vid.play();
 };
-$('origVol').addEventListener('input', () => { if(dubMode) setOrigVol(); });
-vid.addEventListener('pause', () => { if(dubMode && !recording){ clearTimeout(audT); aud.pause(); } });
-vid.addEventListener('play', () => { if(dubMode && !recording && aud.paused) audGo(); });
-vid.addEventListener('seeked', () => { if(dubMode && !recording){ if(vid.paused) aud.currentTime = Math.max(0, vid.currentTime - ((playD && playD.offset) || 0)); else audGo(); } });
+$('origVol').addEventListener('input', () => { if(dubMode) setMixSound(); });
+$('bgVol').addEventListener('input', () => { if(dubMode) setMixSound(); });
+vid.addEventListener('pause', () => { if(dubMode && !recording){ clearTimeout(audT); aud.pause(); bgm.pause(); } });
+vid.addEventListener('play', () => { if(dubMode && !recording){ if(aud.paused) audGo(); if(bgOn && bgm.paused) bgGo(); } });
+vid.addEventListener('seeked', () => { if(dubMode && !recording){ if(vid.paused) aud.currentTime = Math.max(0, vid.currentTime - ((playD && playD.offset) || 0)); else audGo(); if(bgOn){ try{ bgm.currentTime = vid.currentTime; }catch(e){} if(!vid.paused){ const p = bgm.play(); if(p && p.catch) p.catch(() => {}); } } } });
+vid.addEventListener('timeupdate', () => { if(dubMode && bgOn && !recording && !vid.paused && Math.abs(bgm.currentTime - vid.currentTime) > 0.3){ try{ bgm.currentTime = vid.currentTime; }catch(e){} } });
 
 $('sync').addEventListener('input', () => {
   const d = selDub(); if(!d) return;
@@ -743,10 +776,16 @@ async function mergeVideo(d){
   ev.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0';
   document.body.appendChild(ev);
   const ea = new Audio(d.audio), ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const eb = (s && !s.local && s.bg) ? new Audio(bgUrl(s)) : null;
   try{
     await new Promise((res, rej) => { ev.onloadeddata = res; ev.onerror = rej; });
     const dest = ctx.createMediaStreamDestination(), g = ctx.createGain(); g.gain.value = $('origVol').value / 100;
-    ctx.createMediaElementSource(ev).connect(g); g.connect(dest);
+    if(eb){
+      ev.muted = true; eb.preload = 'auto';
+      const gb = ctx.createGain(); gb.gain.value = $('bgVol').value / 100;
+      ctx.createMediaElementSource(eb).connect(gb); gb.connect(dest);
+      await new Promise((res, rej) => { eb.oncanplay = res; eb.onerror = rej; setTimeout(res, 5000); });
+    } else { ctx.createMediaElementSource(ev).connect(g); g.connect(dest); }
     ctx.createMediaElementSource(ea).connect(dest);
     const vt = (ev.captureStream || ev.mozCaptureStream).call(ev).getVideoTracks()[0];
     if(!vt) throw new Error('no video track');
@@ -763,9 +802,9 @@ async function mergeVideo(d){
       ev.remove(); ctx.close(); busy = false; updateButtons();
       setStatus('Done! The video with the dub was saved.');
     };
-    ev.onended = () => setTimeout(() => rec.stop(), 300);
+    ev.onended = () => { if(eb) eb.pause(); setTimeout(() => rec.stop(), 300); };
     const o = d.offset || 0; if(o < 0) ea.currentTime = -o;
-    await ctx.resume(); rec.start(); ev.play(); if(o > 0) setTimeout(() => ea.play(), o * 1000); else ea.play();
+    await ctx.resume(); rec.start(); ev.play(); if(eb) eb.play(); if(o > 0) setTimeout(() => ea.play(), o * 1000); else ea.play();
   }catch(err){
     ev.remove(); ctx.close(); busy = false; updateButtons();
     setStatus('Could not create the combined video in this browser. You can still save the audio only.');
