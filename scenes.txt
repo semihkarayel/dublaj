@@ -40,6 +40,13 @@ video: scenes/askimemnu.mp4
 0:00 Firdevs: Are you blackmailing me? Nothing can stop them now. They're in love with each other, can't you see?
 0:09 Bihter: That's why I'm telling you to wreck it! For this! I'm dying, can't you see? They're in love right in front of my eyes. While I writhe in torment, their happiness is killing me.
 
+# Maskeli Beşler - Uçak Sahnesi
+video: scenes/maskelibesler.mp4
+0:00 Kule: What's the status of the autopilot?
+0:03 Tezcan: Autopilot... autopilot... He's not around right now, man. What was he like?
+0:10 Kule: It's terrible. Every single pilot is down.
+0:12 Polis: Nothing to be done. Whoever is talking will land the plane. Tell them to stay calm. Just get it down without crashing.
+
 # Medcezir - Mira Yaman Sahnesi
 video: scenes/medcezir1.mp4
 00:02 Mira: Hi.
